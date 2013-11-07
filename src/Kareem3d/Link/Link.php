@@ -271,6 +271,14 @@ class Link extends Model {
     }
 
     /**
+     * @return string
+     */
+    public function getArgumentsString()
+    {
+        return http_build_query($this->getArgumentsAttribute());
+    }
+
+    /**
      * @return mixed|string
      */
     public function __toString()
