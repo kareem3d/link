@@ -64,6 +64,7 @@ class DynamicRouter {
 
             // Bind current link and current route for future usage
             App::instance('CurrentLink', $link);
+            App::instance('CurrentPage', $link->page);
             App::instance('CurrentRoute', $route);
 
             $route->routeToLink($link);

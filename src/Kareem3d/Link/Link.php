@@ -44,8 +44,7 @@ class Link extends Model {
     }
 
     /**
-     * @param Model $model
-     * @param null $query
+     * @param \Kareem3d\Eloquent\Model $model
      * @return Link|null
      */
     public static function getByModel( Model $model)
