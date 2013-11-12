@@ -2,8 +2,6 @@
 
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Request;
-use Illuminate\Support\Facades\URL;
 use Kareem3d\Eloquent\Model;
 use Kareem3d\Templating\Page;
 
@@ -25,6 +23,25 @@ class Link extends Model {
     protected static $dontDuplicate = array('url');
 
     /**
+     * @var array
+     */
+    protected $tempArguments;
+
+    /**
+     * @var Link[]
+     */
+    protected static $allNotAttachedToModel;
+
+    /**
+     * @param $url
+     * @return string
+     */
+    public static function getPageNameByUrl( $url )
+    {
+        return static::getByUrl($url)->page_name;
+    }
+
+    /**
      * @param $_pageName
      * @param Model $model
      * @return Link
@@ -41,6 +58,48 @@ class Link extends Model {
     public static function getByPage( $_pageName )
     {
         return static::getByPageQuery($_pageName)->first();
+    }
+
+
+    /**
+     * @param $_pageName
+     * @param \Kareem3d\Eloquent\Model $model
+     * @return mixed
+     */
+    public static function getUrlByPageAndModel( $_pageName, Model $model )
+    {
+        $link = static::getByPageQuery($_pageName, static::getByModelQuery($model))->first(array('url'));
+
+        return $link ? $link->url : '#';
+    }
+
+    /**
+     * @param $_pageName
+     * @return mixed
+     */
+    public static function getUrlByPage( $_pageName )
+    {
+        // Get all links not attached to model
+        $links = static::getAllNotAttachedToModel(array('page_name', 'url'));
+
+        foreach($links as $link)
+        {
+            if($link->page_name == $_pageName)
+            {
+                return $link->url;
+            }
+        }
+    }
+
+    /**
+     * @param $cols
+     * @return mixed
+     */
+    public static function getAllNotAttachedToModel($cols)
+    {
+        if(static::$allNotAttachedToModel) return static::$allNotAttachedToModel;
+
+        return static::$allNotAttachedToModel = static::where('linkable_type', '')->get($cols);
     }
 
     /**
@@ -79,7 +138,7 @@ class Link extends Model {
 
     /**
      * @param $url
-     * @return \Kareem3d\URL\URL
+     * @return \Kareem3d\Link\Link
      */
     public static function getByUrl( $url )
     {
@@ -195,6 +254,23 @@ class Link extends Model {
     }
 
     /**
+     * @param $identifer
+     * @return bool
+     */
+    public function checkPageNameOrUrl( $identifer )
+    {
+        return $this->page_name == $identifer || $this->url == $identifer;
+    }
+
+    /**
+     * @return Page
+     */
+    public function getPage()
+    {
+        return $this->page;
+    }
+
+    /**
      * @return
      */
     public function getPageAttribute()
@@ -207,6 +283,7 @@ class Link extends Model {
     }
 
     /**
+     * @param $_page
      * @param Page|string $_page
      */
     public function setPageAttribute( $_page )
@@ -249,7 +326,15 @@ class Link extends Model {
             $rows[$argument->key] = $argument->value;
         }
 
-        return $rows;
+        return $this->tempArguments = $rows;
+    }
+
+    /**
+     * @param $key
+     */
+    public function getArgument( $key )
+    {
+        return ! empty($this->arguments) && isset($this->arguments[$key]) ? $this->arguments[$key] : '';
     }
 
     /**
@@ -283,5 +368,33 @@ class Link extends Model {
     public function __toString()
     {
         return $this->url;
+    }
+
+    /**
+     *
+     */
+    public function setModelAttribute( $value )
+    {
+        if($value instanceof Model)
+        {
+            $this->linkable_type = $value->getClass();
+            $this->linkable_id   = $value->id;
+        }
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getModel()
+    {
+        return $this->linkable_type ? $this->linkable : null;
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function linkable()
+    {
+        return $this->morphTo();
     }
 }

@@ -18,7 +18,6 @@ class LinkServiceProvider extends ServiceProvider {
 	 */
 	public function register()
 	{
-        require __DIR__ . '/helpers.php';
 	}
 
 	/**

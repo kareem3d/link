@@ -1,10 +1,7 @@
 <?php namespace Kareem3d\Link;
 
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Request;
-use Illuminate\Support\Facades\Route;
 use Kareem3d\Templating\Page;
-use Kareem3d\Templating\PageRepository;
 
 class DynamicRouter {
 
@@ -14,16 +11,53 @@ class DynamicRouter {
     protected $routes = array();
 
     /**
+     * Current currentLink
+     *
      * @var Link
      */
-    protected $links;
+    protected $currentLink;
 
     /**
-     * @param Link $links
+     * @var DynamicRouter
      */
-    public function __construct(Link $links)
+    protected static $instance;
+
+    /**
+     * @param Link $currentLink
+     */
+    private function __construct(Link $currentLink = null)
     {
-        $this->links = $links;
+        $this->currentLink = $currentLink;
+    }
+
+    /**
+     * @return DynamicRouter
+     */
+    public static function instance(Link $currentLink = null)
+    {
+        if(! static::$instance)
+        {
+            static::$instance = new static($currentLink);
+        }
+
+        return static::$instance;
+    }
+
+    /**
+     * @param  Link $currentLink
+     * @return void
+     */
+    public function setCurrentLink(Link $currentLink)
+    {
+        $this->currentLink = $currentLink;
+    }
+
+    /**
+     * @return Link
+     */
+    public function getCurrentLink()
+    {
+        return $this->currentLink;
     }
 
     /**
@@ -48,26 +82,22 @@ class DynamicRouter {
      */
     public function launch()
     {
-        $link = $this->links->getByUrl(Request::url());
+        $currentLink = $this->getCurrentLink();
 
-        if($link and $link->page)
+        // If current currentLink is defined and there's a page linking to it...
+        if($currentLink && $currentLink->page)
         {
             // If no route defined for this page then create new route to only print the page attached to it..
-            if(! $route = $this->getRouteFor($link->page))
+            if(! $route = $this->getRouteFor($currentLink->page))
             {
-                $route = DynamicRoute::factory(function() use ($link)
+                $route = DynamicRoute::factory(function() use($currentLink)
                 {
-                    // Print the page given it the link arguments
-                    return $link->page->printMe(array('arguments' => $link->arguments));
+                    // Print the page given it the currentLink arguments
+                    return $currentLink->page->printMe();
                 });
             }
 
-            // Bind current link and current route for future usage
-            App::instance('CurrentLink', $link);
-            App::instance('CurrentPage', $link->page);
-            App::instance('CurrentRoute', $route);
-
-            $route->routeToLink($link);
+            $route->routeToLink($currentLink);
         }
     }
 
